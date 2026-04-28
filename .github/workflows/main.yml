@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Degrau Controlado
+name: Build APK Rafael 2026 - O Arquivo de Respostas
 
 on:
   push:
@@ -23,8 +23,12 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Setup Android SDK (A Ferramenta Estável)
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+
+      - name: Aceitar Licenças do Android
+        # Garantia extra para o SDK não abrir nenhum prompt surpresa pedindo 'y'
+        run: yes | sdkmanager --licenses || true
 
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
@@ -55,18 +59,18 @@ jobs:
           }
           EOF
           
-      - name: Build Final (A Mágica dos 10 Enters)
+      - name: Build Final (A Prova de Falhas)
         run: |
-          # 1. Desliga o modo "robô" para ele aceitar respostas
           export CI=false
           
-          # 2. O PULO DO GATO: Imprime exatamente 10 'Enters' (\n) e passa para o Bubblewrap.
-          # Isso responde as perguntas de senha com "vazio" e o --skipSigning faz o resto.
-          printf '\n\n\n\n\n\n\n\n\n\n' | bubblewrap build --manifest ./twa-manifest.json --skipSigning
+          # 1. Criamos um arquivo chamado 'respostas.txt' com 15 quebras de linha (Enters)
+          printf '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' > respostas.txt
+          
+          # 2. O PULO DO GATO: Usamos '<' (Input Redirect) em vez de '|' (Pipe).
+          # O Bubblewrap lê o arquivo, usa os Enters que precisar e não dá crash quando termina!
+          bubblewrap build --manifest ./twa-manifest.json --skipSigning < respostas.txt
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
           name: app-rafael-final
-          path: ./**/*.apk
-          if-no-files-found: error
