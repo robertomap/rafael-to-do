@@ -9,7 +9,7 @@
   "backgroundColor": "#2E8B57",
   "enableNotifications": false,
   "startUrl": "/",
-  "iconUrl": "https://sua-url-do-icone.png",
+  "iconUrl": "ToDO_icone.png",
   "splashScreenFadeOutDuration": 300,
   "shortcuts": [],
   "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json"
