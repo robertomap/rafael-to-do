@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - O Arquivo de Respostas
+name: Build APK Rafael 2026 - A Elegância Pura
 
 on:
   push:
@@ -26,10 +26,6 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Aceitar Licenças do Android
-        # Garantia extra para o SDK não abrir nenhum prompt surpresa pedindo 'y'
-        run: yes | sdkmanager --licenses || true
-
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
@@ -38,39 +34,42 @@ jobs:
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
-      - name: Injetar Manifesto
+      - name: Criar Web Manifest Local (A Isca)
+        # O PULO DO GATO: Colocamos a URL completa no start_url. 
+        # Assim o robô não precisa perguntar qual é o domínio!
         run: |
-          cat <<EOF > twa-manifest.json
+          cat <<EOF > manifest.json
           {
-            "packageId": "com.miranda.roberto.todo.rafael",
-            "host": "rafael-to-do.glide.page",
             "name": "Rafael To-Do Estudos",
-            "launcherName": "Rafael ToDo",
+            "short_name": "Rafael ToDo",
+            "start_url": "https://rafael-to-do.glide.page/",
             "display": "standalone",
-            "themeColor": "#2E8B57",
-            "navigationColor": "#000000",
-            "backgroundColor": "#2E8B57",
-            "enableNotifications": false,
-            "startUrl": "/",
-            "iconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
-            "splashScreenFadeOutDuration": 300,
-            "shortcuts": [],
-            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json"
+            "background_color": "#2E8B57",
+            "theme_color": "#2E8B57",
+            "icons": [{
+              "src": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
+              "sizes": "512x512",
+              "type": "image/png"
+            }]
           }
           EOF
-          
-      - name: Build Final (A Prova de Falhas)
+
+      - name: Inicializar Projeto (Sem Perguntas)
         run: |
           export CI=false
-          
-          # 1. Criamos um arquivo chamado 'respostas.txt' com 15 quebras de linha (Enters)
-          printf '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' > respostas.txt
-          
-          # 2. O PULO DO GATO: Usamos '<' (Input Redirect) em vez de '|' (Pipe).
-          # O Bubblewrap lê o arquivo, usa os Enters que precisar e não dá crash quando termina!
-          bubblewrap build --manifest ./twa-manifest.json --skipSigning < respostas.txt
+          # O init lê o nosso json acima e monta a estrutura do Android sozinho.
+          # A flag --yes aceita todos os valores padrão (já que demos todas as informações).
+          bubblewrap init --manifest ./manifest.json --yes
+
+      - name: Compilar APK (Build Final)
+        run: |
+          export CI=false
+          # Como o init já preparou o terreno perfeito, o build só empacota.
+          bubblewrap build --yes --skipSigning
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
           name: app-rafael-final
+          path: ./**/*.apk
+          if-no-files-found: error
