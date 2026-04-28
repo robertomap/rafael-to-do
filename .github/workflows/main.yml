@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Rolo Compressor
+name: Build APK Rafael 2026 - O Build Limpo
 
 on:
   push:
@@ -34,6 +34,11 @@ jobs:
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
+      - name: Gerar Chave de Segurança (Keystore)
+        # Criamos a chave antes do Bubblewrap para ele não ter motivos para abrir prompts
+        run: |
+          keytool -genkeypair -v -keystore ./android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
+
       - name: Injetar Manifesto
         run: |
           cat <<EOF > twa-manifest.json
@@ -51,20 +56,17 @@ jobs:
             "iconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
             "splashScreenFadeOutDuration": 300,
             "shortcuts": [],
-            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json"
+            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json",
+            "signingKey": {
+              "path": "./android.keystore",
+              "alias": "android"
+            }
           }
           EOF
           
-      - name: O Rolo Compressor (Build Final)
-        run: |
-          # 1. Desligar a trava do GitHub que faz o robô crashar quando surge um prompt
-          export CI=false
-          
-          # 2. Desligar o 'pipefail' para evitar o erro de "Broken pipe" que tivemos antes
-          set +o pipefail
-          
-          # 3. Fornecemos as senhas, e o 'yes ""' aperta ENTER para todo o resto
-          yes "" | bubblewrap build --manifest ./twa-manifest.json --skipSigning --keystorePassword "rafael2026" --keyPassword "rafael2026"
+      - name: Build Final (Sem Logs Infinitos)
+        # Rodamos o comando normal, passando as senhas diretas. A flag --yes resolve licenças simples.
+        run: bubblewrap build --manifest ./twa-manifest.json --yes --keystorePassword "rafael2026" --keyPassword "rafael2026"
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
