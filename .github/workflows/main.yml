@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Circuito Fechado
+name: Build APK Rafael 2026 - Final na Raca
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 env:
+  # Calar avisos de 2026 e forçar Node 24
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
@@ -29,36 +30,43 @@ jobs:
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Configurar e Gerar APK
+      - name: Configurar e Compilar
         run: |
-          # 1. Configurar caminhos do SDK
+          # 1. Configuração de ambiente (Fim do erro de SDK)
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
           
-          # 2. Criar o Web Manifest LOCAL (Usando o ícone que já está na pasta)
-          cat <<EOF > manifest.json
+          # 2. Inicialização "Suave"
+          # Tentamos ler o manifesto do Glide apenas para criar as pastas. 
+          # Se der erro de ícone aqui, o '|| true' faz o script continuar.
+          bubblewrap init --manifest https://rafael-to-do.glide.page/manifest.json --yes || true
+          
+          # 3. INJEÇÃO DA FONTE DA VERDADE
+          # Aqui a gente ignora o Glide e escreve o que o Rafael precisa direto no arquivo de build
+          cat <<EOF > twa-manifest.json
           {
+            "packageId": "com.miranda.roberto.todo.rafael",
+            "host": "rafael-to-do.glide.page",
             "name": "Rafael To-Do Estudos",
-            "short_name": "Rafael ToDo",
-            "start_url": "/",
+            "launcherName": "Rafael ToDo",
             "display": "standalone",
-            "background_color": "#2E8B57",
-            "theme_color": "#2E8B57",
-            "icons": [{ 
-              "src": "ToDO_icone.png", 
-              "sizes": "512x512", 
-              "type": "image/png",
-              "purpose": "any maskable"
-            }]
+            "themeColor": "#2E8B57",
+            "navigationColor": "#000000",
+            "backgroundColor": "#2E8B57",
+            "enableNotifications": false,
+            "startUrl": "/",
+            "iconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
+            "splashScreenFadeOutDuration": 300,
+            "shortcuts": [],
+            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json"
           }
           EOF
-
-          # 3. INICIALIZAR E COMPILAR (Ignora a rede totalmente)
-          # O comando 'init' gera o projeto usando o arquivo local e o ícone local
-          bubblewrap init --manifest ./manifest.json --host rafael-to-do.glide.page --metaData.appVersionName "1.0.0" --yes
           
-          # Build final
-          bubblewrap build --yes --skipSigning
+          echo "Manifesto técnico injetado com sucesso."
+          
+          # 4. Build Final
+          # O '--yes' aceita as licenças e o '--skipSigning' gera o APK para teste imediato
+          bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
