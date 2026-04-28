@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - A Vitória Definitiva
+name: Build APK Rafael 2026 - O Padrão Ouro (Assinatura Manual)
 
 on:
   push:
@@ -35,17 +35,13 @@ jobs:
         run: |
           bubblewrap updateConfig --jdkPath "${JAVA_HOME}" --androidSdkPath "${ANDROID_HOME}"
 
-      - name: Preparar Sala Limpa e Chave JKS (Antifalaha)
+      - name: Preparar Sala Limpa
         run: |
-          # 1. Destrói qualquer pasta velha e cria uma nova com nome exclusivo
           rm -rf build_rafael
           mkdir build_rafael
           cd build_rafael
           
-          # 2. Gera a chave explicitamente no formato JKS (Storetype JKS) e alias único
-          keytool -genkeypair -v -storetype JKS -keystore ./rafael.jks -alias rafael_alias -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
-          
-          # 3. Atualiza o manifesto apontando para os novos arquivos
+          # Manifesto SEM a seção de chave. O Bubblewrap não vai saber de nada.
           cat <<EOF > twa-manifest.json
           {
             "packageId": "com.miranda.roberto.todo.rafael",
@@ -61,26 +57,41 @@ jobs:
             "iconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
             "splashScreenFadeOutDuration": 300,
             "shortcuts": [],
-            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json",
-            "signingKey": {
-              "path": "./rafael.jks",
-              "alias": "rafael_alias"
-            }
+            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json"
           }
           EOF
-          
-      - name: Build Final
+
+      - name: Build Bruto (Sem Assinatura)
         run: |
           cd build_rafael
-          export CI=false
           yes | sdkmanager --licenses || true
           
-          # Passamos os novos nomes para o robô
-          bubblewrap build --manifest ./twa-manifest.json --yes --keystoreAlias "rafael_alias" --keystorePassword "rafael2026" --keyPassword "rafael2026"
-        
-      - name: Upload do APK
+          # Ativamos o CI=true para ele crashar se tentar abrir prompt, em vez de travar.
+          export CI=true 
+          
+          # Passamos --skipSigning. Ele vai gerar um APK "cru" e calar a boca.
+          bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
+
+      - name: Assinatura Manual (Root Access)
+        run: |
+          cd build_rafael
+          
+          # 1. Criamos a chave por fora
+          keytool -genkeypair -v -storetype JKS -keystore ./rafael.jks -alias rafael_alias -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
+          
+          # 2. Encontramos o APK gerado pelo Bubblewrap
+          APK_IN=$(find . -name "*.apk" | head -n 1)
+          echo "APK Cru encontrado: $APK_IN"
+          
+          # 3. Zipalign (Otimização de memória obrigatória do Android)
+          ${ANDROID_HOME}/build-tools/34.0.0/zipalign -v -p 4 "$APK_IN" app-rafael-aligned.apk
+          
+          # 4. Apksigner (A Assinatura Oficial do Google, passando as senhas direto no comando)
+          ${ANDROID_HOME}/build-tools/34.0.0/apksigner sign --ks ./rafael.jks --ks-key-alias rafael_alias --ks-pass pass:rafael2026 --key-pass pass:rafael2026 --out app-rafael-final.apk app-rafael-aligned.apk
+
+      - name: Upload do Troféu
         uses: actions/upload-artifact@v4
         with:
           name: app-rafael-final
-          path: build_rafael/**/*.apk
+          path: build_rafael/app-rafael-final.apk
           if-no-files-found: error
