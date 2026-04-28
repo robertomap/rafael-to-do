@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Final Stable
+name: Build APK Rafael - Debug e Build
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 env:
-  # Calar avisos de depreciação e forçar o motor de 2026
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
@@ -30,22 +29,23 @@ jobs:
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Injetar Configuração do Ambiente
-        # Aqui eliminamos o erro de "SDK incorrect" injetando os caminhos oficiais
+      - name: Injetar Configuração
         run: |
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
-          echo "Bubblewrap configurado para usar SDK em: ${ANDROID_HOME}"
 
-      - name: Gerar APK
-        # O segredo: --yes aceita licenças e --skipSigning evita a necessidade de chaves agora
+      - name: Verificar Arquivos e Gerar APK
         run: |
-          bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
+          echo "--- Listando arquivos no diretório atual ---"
+          ls -R
+          echo "--- Iniciando o Build ---"
+          # Usamos o find para garantir que o Bubblewrap localize o arquivo exato
+          MANIFEST_PATH=$(find . -name "twa-manifest.json" | head -n 1)
+          bubblewrap build --manifest "$MANIFEST_PATH" --yes --skipSigning
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
           name: app-rafael-final
-          # O asterisco duplo garante que ele encontre o arquivo não importa onde o Gradle o coloque
           path: ./**/*.apk
           if-no-files-found: error
