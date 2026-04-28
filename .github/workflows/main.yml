@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - A Sala Limpa
+name: Build APK Rafael 2026 - A Bala de Prata
 
 on:
   push:
@@ -23,27 +23,29 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Calibrar o Android SDK Nativo
+        # O GitHub já tem o SDK. Aqui forçamos a instalação das ferramentas exatas que o Bubblewrap exige!
+        run: |
+          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "build-tools;34.0.0" "platforms;android-34" "cmdline-tools;latest"
 
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Configurar Ambiente Global
+      - name: Configurar Bubblewrap (Modo Oficial)
+        # O PULO DO GATO: Em vez de criar o arquivo JSON na mão, usamos o comando oficial da ferramenta
         run: |
-          mkdir -p ~/.bubblewrap
-          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
+          bubblewrap updateConfig --jdkPath "${JAVA_HOME}" --androidSdkPath "${ANDROID_HOME}"
 
       - name: Preparar Sala Limpa e Gerar Chave
         run: |
-          # 1. Cria uma pasta 100% vazia e entra nela
           mkdir app_build
           cd app_build
           
-          # 2. Gera a chave de segurança dentro da sala limpa
+          # Criando a chave de segurança silenciosamente
           keytool -genkeypair -v -keystore ./android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
           
-          # 3. Injeta o manifesto dentro da sala limpa
+          # Injetando o manifesto
           cat <<EOF > twa-manifest.json
           {
             "packageId": "com.miranda.roberto.todo.rafael",
@@ -67,18 +69,15 @@ jobs:
           }
           EOF
 
-      - name: Build Final (Sem Prompts)
+      - name: Build Final (A Glória)
         run: |
-          # 4. Entramos na pasta para compilar
           cd app_build
-          
-          # O Bubblewrap olha ao redor, vê a pasta vazia e trabalha sem perguntar nada.
+          # Build sem interrupções e com senhas prontas
           bubblewrap build --manifest ./twa-manifest.json --yes --keystoreAlias "android" --keystorePassword "rafael2026" --keyPassword "rafael2026"
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
           name: app-rafael-final
-          # Como tudo foi gerado na pasta nova, o caminho do artefato também muda:
           path: app_build/**/*.apk
           if-no-files-found: error
