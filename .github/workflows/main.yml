@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Reta Final
+name: Build APK Rafael 2026 - Bypass da Chave
 
 on:
   push:
@@ -34,8 +34,12 @@ jobs:
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
-      - name: Gerar Manifesto e Compilar APK
+      - name: Gerar Chave e Compilar APK
         run: |
+          # 1. O PULO DO GATO: Gerar a Keystore silenciosamente (sem prompts)
+          keytool -genkey -v -keystore ./android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
+          
+          # 2. Injetar Manifesto informando que a chave já existe
           cat <<EOF > twa-manifest.json
           {
             "packageId": "com.miranda.roberto.todo.rafael",
@@ -51,12 +55,16 @@ jobs:
             "iconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
             "splashScreenFadeOutDuration": 300,
             "shortcuts": [],
-            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json"
+            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json",
+            "signingKey": {
+              "path": "./android.keystore",
+              "alias": "android"
+            }
           }
           EOF
           
-          # O Pulo do Gato: Passar senhas direto no comando para o robô não perguntar nada
-          bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning --keystorePassword "rafael2026" --keyPassword "rafael2026"
+          # 3. Build Final fornecendo as senhas da chave que acabamos de criar
+          bubblewrap build --manifest ./twa-manifest.json --yes --keystorePassword "rafael2026" --keyPassword "rafael2026"
         
       - name: Upload do APK Final
         uses: actions/upload-artifact@v4
