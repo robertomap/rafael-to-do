@@ -5,6 +5,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Adicionamos esta variável global para calar o aviso de depreciação
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,13 +19,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24' # Atualizado para a versão recomendada
 
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
       - name: Gerar APK
-        # O comando 'build' usa o seu arquivo twa-manifest.json local
+        # O comando build local ignora o cache do Glide
         run: |
           bubblewrap build --manifest ./twa-manifest.json --skipSigning
         
@@ -29,4 +33,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-rafael-debug
-          path: ./*.apk
+          path: ./**/*.apk
+          if-no-files-found: error
