@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - A Retomada
+name: Build APK Rafael 2026 - A Vitória Definitiva
 
 on:
   push:
@@ -23,10 +23,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Setup Android SDK (Com Lista de Compras)
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          # O Pulo do Gato: Obriga a baixar o que o Bubblewrap gosta!
           packages: 'build-tools;34.0.0 platforms;android-34 cmdline-tools;latest'
 
       - name: Instalar Bubblewrap CLI
@@ -34,15 +33,19 @@ jobs:
 
       - name: Configurar Bubblewrap
         run: |
-          mkdir -p ~/.bubblewrap
-          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
+          bubblewrap updateConfig --jdkPath "${JAVA_HOME}" --androidSdkPath "${ANDROID_HOME}"
 
-      - name: Gerar Chave de Segurança
+      - name: Preparar Sala Limpa e Chave JKS (Antifalaha)
         run: |
-          keytool -genkeypair -v -keystore ./android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
-
-      - name: Injetar Manifesto
-        run: |
+          # 1. Destrói qualquer pasta velha e cria uma nova com nome exclusivo
+          rm -rf build_rafael
+          mkdir build_rafael
+          cd build_rafael
+          
+          # 2. Gera a chave explicitamente no formato JKS (Storetype JKS) e alias único
+          keytool -genkeypair -v -storetype JKS -keystore ./rafael.jks -alias rafael_alias -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
+          
+          # 3. Atualiza o manifesto apontando para os novos arquivos
           cat <<EOF > twa-manifest.json
           {
             "packageId": "com.miranda.roberto.todo.rafael",
@@ -60,17 +63,24 @@ jobs:
             "shortcuts": [],
             "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json",
             "signingKey": {
-              "path": "./android.keystore",
-              "alias": "android"
+              "path": "./rafael.jks",
+              "alias": "rafael_alias"
             }
           }
           EOF
           
-      - name: Build Final (Blindado)
+      - name: Build Final
         run: |
+          cd build_rafael
           export CI=false
-          # Aceita as licenças do SDK por precaução
           yes | sdkmanager --licenses || true
           
-          # Compila passando TODAS as informações para o robô não abrir a boca
-          bubblewrap build --manifest ./twa-manifest.json --yes --keystoreAlias "android
+          # Passamos os novos nomes para o robô
+          bubblewrap build --manifest ./twa-manifest.json --yes --keystoreAlias "rafael_alias" --keystorePassword "rafael2026" --keyPassword "rafael2026"
+        
+      - name: Upload do APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-rafael-final
+          path: build_rafael/**/*.apk
+          if-no-files-found: error
