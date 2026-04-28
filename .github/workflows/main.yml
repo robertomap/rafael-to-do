@@ -1,4 +1,4 @@
-name: Build APK Manual 2026
+name: Build APK Rafael 2026 - Final Fix
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  # Garante que as ações rodem no Node 24 exigido em 2026
+  # Resolve o alerta de depreciação do Node 20 para 2026
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -30,19 +30,21 @@ jobs:
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Configurar Caminhos do Android (Fix 2026)
-        # Este passo cria o arquivo de configuração que o Bubblewrap exige
-        # Usamos as variáveis oficiais do sistema (ANDROID_HOME e JAVA_HOME)
+      - name: Aceitar Licenças do Android
+        # Este passo é o "segredo". Ele aceita as licenças no local correto do Runner.
+        run: |
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || echo "y" | $ANDROID_HOME/tools/bin/sdkmanager --licenses
+
+      - name: Configurar Caminhos Silenciosamente
+        # Injetamos o config.json usando as variáveis oficiais do GitHub
         run: |
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
-          echo "Configuração do Bubblewrap injetada com sucesso."
 
-      - name: Aceitar Licenças e Gerar APK
-        # O 'echo y' responde apenas o necessário, evitando o erro de "Broken pipe" do 'yes'
-        # O '--yes' final é uma flag nativa para automação
+      - name: Gerar APK
+        # O segredo aqui é a flag --yes (que substitui o comando 'yes |')
         run: |
-          echo "y" | bubblewrap build --manifest ./twa-manifest.json --skipSigning --yes
+          bubblewrap build --manifest ./twa-manifest.json --skipSigning --yes
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
