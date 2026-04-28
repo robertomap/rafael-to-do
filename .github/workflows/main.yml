@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Estratégia de Arquivo Local
+name: Build APK Rafael 2026 - Circuito Fechado
 
 on:
   push:
@@ -35,7 +35,7 @@ jobs:
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
           
-          # 2. Criar o Web Manifest LOCAL (A fonte da verdade)
+          # 2. Criar o Web Manifest LOCAL (Usando o ícone que já está na pasta)
           cat <<EOF > manifest.json
           {
             "name": "Rafael To-Do Estudos",
@@ -45,7 +45,7 @@ jobs:
             "background_color": "#2E8B57",
             "theme_color": "#2E8B57",
             "icons": [{ 
-              "src": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png", 
+              "src": "ToDO_icone.png", 
               "sizes": "512x512", 
               "type": "image/png",
               "purpose": "any maskable"
@@ -53,11 +53,11 @@ jobs:
           }
           EOF
 
-          # 3. INICIALIZAR O PROJETO A PARTIR DO ARQUIVO (Ignora a rede/URL)
-          # O comando 'init' gera o twa-manifest.json automaticamente com base no arquivo local
+          # 3. INICIALIZAR E COMPILAR (Ignora a rede totalmente)
+          # O comando 'init' gera o projeto usando o arquivo local e o ícone local
           bubblewrap init --manifest ./manifest.json --host rafael-to-do.glide.page --metaData.appVersionName "1.0.0" --yes
           
-          # 4. BUILD FINAL
+          # Build final
           bubblewrap build --yes --skipSigning
         
       - name: Upload do APK
