@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - O Build Limpo
+name: Build APK Rafael 2026 - O Build Limpo (Fix Alias)
 
 on:
   push:
@@ -35,7 +35,6 @@ jobs:
           echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
       - name: Gerar Chave de Segurança (Keystore)
-        # Criamos a chave antes do Bubblewrap para ele não ter motivos para abrir prompts
         run: |
           keytool -genkeypair -v -keystore ./android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
 
@@ -64,9 +63,9 @@ jobs:
           }
           EOF
           
-      - name: Build Final (Sem Logs Infinitos)
-        # Rodamos o comando normal, passando as senhas diretas. A flag --yes resolve licenças simples.
-        run: bubblewrap build --manifest ./twa-manifest.json --yes --keystorePassword "rafael2026" --keyPassword "rafael2026"
+      - name: Build Final (Sem Prompts)
+        # O Pulo do Gato: adicionamos a flag --keystoreAlias "android"
+        run: bubblewrap build --manifest ./twa-manifest.json --yes --keystoreAlias "android" --keystorePassword "rafael2026" --keyPassword "rafael2026"
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
