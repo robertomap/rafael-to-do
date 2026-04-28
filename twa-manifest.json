@@ -1,16 +1,16 @@
 {
-  "packageId": "com.roberto.estudos.rafael",
-  "host": "seu-app.glideapp.io",
-  "name": "App de Estudos",
-  "launcherName": "Estudos",
+  "packageId": "com.miranda.roberto.todo.rafael",
+  "host": "rafael-to-do.glide.page",
+  "name": "Rafael To-Do Estudos",
+  "launcherName": "Rafale ToDo",
   "display": "standalone",
-  "themeColor": "#FFFFFF",
+  "themeColor": "#2E8B57",
   "navigationColor": "#000000",
-  "backgroundColor": "#FFFFFF",
+  "backgroundColor": "#2E8B57",
   "enableNotifications": false,
   "startUrl": "/",
   "iconUrl": "https://sua-url-do-icone.png",
   "splashScreenFadeOutDuration": 300,
   "shortcuts": [],
-  "webManifestUrl": "https://seu-app.glideapp.io/manifest.json"
+  "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json"
 }
