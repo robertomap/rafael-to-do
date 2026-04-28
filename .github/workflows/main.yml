@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Bypass da Chave
+name: Build APK Rafael 2026 - Rolo Compressor
 
 on:
   push:
@@ -29,17 +29,13 @@ jobs:
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Configuração do Ambiente
+      - name: Configurar Ambiente
         run: |
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
-      - name: Gerar Chave e Compilar APK
+      - name: Injetar Manifesto
         run: |
-          # 1. O PULO DO GATO: Gerar a Keystore silenciosamente (sem prompts)
-          keytool -genkey -v -keystore ./android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
-          
-          # 2. Injetar Manifesto informando que a chave já existe
           cat <<EOF > twa-manifest.json
           {
             "packageId": "com.miranda.roberto.todo.rafael",
@@ -55,20 +51,24 @@ jobs:
             "iconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
             "splashScreenFadeOutDuration": 300,
             "shortcuts": [],
-            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json",
-            "signingKey": {
-              "path": "./android.keystore",
-              "alias": "android"
-            }
+            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json"
           }
           EOF
           
-          # 3. Build Final fornecendo as senhas da chave que acabamos de criar
-          bubblewrap build --manifest ./twa-manifest.json --yes --keystorePassword "rafael2026" --keyPassword "rafael2026"
+      - name: O Rolo Compressor (Build Final)
+        run: |
+          # 1. Desligar a trava do GitHub que faz o robô crashar quando surge um prompt
+          export CI=false
+          
+          # 2. Desligar o 'pipefail' para evitar o erro de "Broken pipe" que tivemos antes
+          set +o pipefail
+          
+          # 3. Fornecemos as senhas, e o 'yes ""' aperta ENTER para todo o resto
+          yes "" | bubblewrap build --manifest ./twa-manifest.json --skipSigning --keystorePassword "rafael2026" --keyPassword "rafael2026"
         
-      - name: Upload do APK Final
+      - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-rafael-debug
+          name: app-rafael-final
           path: ./**/*.apk
           if-no-files-found: error
