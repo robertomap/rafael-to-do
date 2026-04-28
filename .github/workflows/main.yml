@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Redundância Máxima
+name: Build APK Rafael 2026 - Bypass de CDN
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 env:
-  # Calar avisos de 2026 e forçar Node 24
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
@@ -36,7 +35,26 @@ jobs:
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
           
-          # 2. INJEÇÃO DO MANIFESTO (Solução Nuclear para evitar erro de arquivo)
+          # 2. Criar o Web Manifest local (para o Bubblewrap não ter que baixar do Glide)
+          cat <<EOF > manifest.json
+          {
+            "name": "Rafael To-Do Estudos",
+            "short_name": "Rafael ToDo",
+            "start_url": "/",
+            "display": "standalone",
+            "background_color": "#2E8B57",
+            "theme_color": "#2E8B57",
+            "icons": [
+              {
+                "src": "https://raw.githubusercontent.com/robertomap/rafael-to-do/main/ToDO_icone.png",
+                "sizes": "512x512",
+                "type": "image/png"
+              }
+            ]
+          }
+          EOF
+
+          # 3. Criar o TWA Manifest apontando para o arquivo que acabamos de criar acima
           cat <<EOF > twa-manifest.json
           {
             "packageId": "com.miranda.roberto.todo.rafael",
@@ -52,13 +70,13 @@ jobs:
             "iconUrl": "https://raw.githubusercontent.com/robertomap/rafael-to-do/main/ToDO_icone.png",
             "splashScreenFadeOutDuration": 300,
             "shortcuts": [],
-            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json"
+            "webManifestUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/manifest.json"
           }
           EOF
           
-          echo "--- Manifesto injetado com sucesso ---"
+          echo "--- Ambiente Local Preparado ---"
           
-          # 3. Build com flag de automação
+          # 4. Build Final
           bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
         
       - name: Upload do APK
@@ -66,4 +84,3 @@ jobs:
         with:
           name: app-rafael-final
           path: ./**/*.apk
-          if-no-files-found: error
