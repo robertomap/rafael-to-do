@@ -22,7 +22,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-rafael-final
-          # O ajuste de "segurança": procura em qualquer subdiretório por arquivos .apk
+          # Busca em qualquer subpasta por arquivos .apk
           path: ./**/*.apk
-          # Garante que o build não falhe se o arquivo não for encontrado (ajuda no debug)
+          # Interrompe com erro se o arquivo não for gerado
           if-no-files-found: error
