@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - A Bala de Prata
+name: Build APK Rafael 2026 - A Retomada
 
 on:
   push:
@@ -23,29 +23,26 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Calibrar o Android SDK Nativo
-        # O GitHub já tem o SDK. Aqui forçamos a instalação das ferramentas exatas que o Bubblewrap exige!
-        run: |
-          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "build-tools;34.0.0" "platforms;android-34" "cmdline-tools;latest"
+      - name: Setup Android SDK (Com Lista de Compras)
+        uses: android-actions/setup-android@v3
+        with:
+          # O Pulo do Gato: Obriga a baixar o que o Bubblewrap gosta!
+          packages: 'build-tools;34.0.0 platforms;android-34 cmdline-tools;latest'
 
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Configurar Bubblewrap (Modo Oficial)
-        # O PULO DO GATO: Em vez de criar o arquivo JSON na mão, usamos o comando oficial da ferramenta
+      - name: Configurar Bubblewrap
         run: |
-          bubblewrap updateConfig --jdkPath "${JAVA_HOME}" --androidSdkPath "${ANDROID_HOME}"
+          mkdir -p ~/.bubblewrap
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
-      - name: Preparar Sala Limpa e Gerar Chave
+      - name: Gerar Chave de Segurança
         run: |
-          mkdir app_build
-          cd app_build
-          
-          # Criando a chave de segurança silenciosamente
           keytool -genkeypair -v -keystore ./android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
-          
-          # Injetando o manifesto
+
+      - name: Injetar Manifesto
+        run: |
           cat <<EOF > twa-manifest.json
           {
             "packageId": "com.miranda.roberto.todo.rafael",
@@ -68,16 +65,12 @@ jobs:
             }
           }
           EOF
-
-      - name: Build Final (A Glória)
+          
+      - name: Build Final (Blindado)
         run: |
-          cd app_build
-          # Build sem interrupções e com senhas prontas
-          bubblewrap build --manifest ./twa-manifest.json --yes --keystoreAlias "android" --keystorePassword "rafael2026" --keyPassword "rafael2026"
-        
-      - name: Upload do APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-rafael-final
-          path: app_build/**/*.apk
-          if-no-files-found: error
+          export CI=false
+          # Aceita as licenças do SDK por precaução
+          yes | sdkmanager --licenses || true
+          
+          # Compila passando TODAS as informações para o robô não abrir a boca
+          bubblewrap build --manifest ./twa-manifest.json --yes --keystoreAlias "android
