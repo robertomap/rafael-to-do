@@ -1,4 +1,4 @@
-name: Build APK Manual 2026
+name: Build APK Rafael 2026
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 env:
+  # Resolve o alerta de depreciação do Node 20
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
@@ -29,22 +30,21 @@ jobs:
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Configurar Caminhos do Android (O Pulo do Gato)
-        # Forçamos o Bubblewrap a aceitar os caminhos padrão do Runner do GitHub
+      - name: Configurar Bubblewrap de forma Silenciosa
+        # Usamos as variáveis nativas do Runner do GitHub para não errar o caminho
         run: |
           mkdir -p ~/.bubblewrap
-          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"/usr/local/lib/android/sdk\"}" > ~/.bubblewrap/config.json
-          # Aceitar licenças do Android SDK silenciosamente
-          yes | sdkmanager --licenses || true
+          echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
+          echo "Configuração apontando para: ${ANDROID_HOME}"
 
       - name: Gerar APK
-        # O comando 'build' agora encontrará o config.json e não fará perguntas
+        # Respondemos 'y' apenas uma vez para a licença, evitando o loop infinito
         run: |
-          bubblewrap build --manifest ./twa-manifest.json --skipSigning
+          echo "y" | bubblewrap build --manifest ./twa-manifest.json --skipSigning
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-rafael-final
+          name: app-rafael-2026
           path: ./**/*.apk
           if-no-files-found: error
