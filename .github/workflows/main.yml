@@ -1,26 +1,26 @@
-name: Gerar APK Estudos Rafael
+name: Gerar APK Oficial PWABuilder
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # Permite rodar manualmente se precisar
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout do Código
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Compilar TWA APK (Bubblewrap)
-        uses: omar-dulaimi/android-twa-action@v1.4.0
-        id: build
+      - name: Gerar Android APK
+        uses: pwa-builder/pwa-action@v1
         with:
-          # Caminho para o arquivo que configuramos
-          twa-manifest: ./twa-manifest.json
+          # A URL do seu app (ela deve estar pública conforme sua imagem)
+          url: https://rafael-to-do.glide.page
+          platform: android
           
-      - name: Upload do APK Gerado
+      - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-estudos-rafael
-          path: ${{ steps.build.outputs.apk-path }}
+          name: app-rafael-final
+          path: ./*-release.apk
