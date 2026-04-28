@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Final Fix
+name: Build APK Rafael 2026 - Protocolo Final
 
 on:
   push:
@@ -31,11 +31,11 @@ jobs:
 
       - name: Configurar e Gerar APK
         run: |
-          # 1. Configurar caminhos do SDK
+          # 1. Configurar caminhos
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
           
-          # 2. Criar Manifesto Web local (Fonte da Verdade)
+          # 2. Criar Manifesto Web
           cat <<EOF > manifest.json
           {
             "name": "Rafael To-Do Estudos",
@@ -48,21 +48,14 @@ jobs:
           }
           EOF
 
-          # 3. Subir servidor Python (Bind 0.0.0.0 para garantir visibilidade)
-          python3 -m http.server 8080 --bind 0.0.0.0 &
+          # 3. SUBIR SERVIDOR COM MIME-TYPE CORRETO (Crucial)
+          # Este comando força o Python a reconhecer o .json como o formato que o Bubblewrap exige
+          python3 -c "import http.server; http.server.SimpleHTTPRequestHandler.extensions_map['.json'] = 'application/manifest+json'; http.server.test(HandlerClass=http.server.SimpleHTTPRequestHandler, port=8080)" &
           
-          # 4. HEALTH CHECK: Aguarda até que o arquivo esteja disponível (máx 20s)
-          echo "Aguardando servidor local responder..."
-          for i in {1..10}; do
-            if curl -s http://127.0.0.1:8080/manifest.json > /dev/null; then
-              echo "Servidor Online!"
-              break
-            fi
-            echo "Tentativa $i: Servidor ainda não disponível..."
-            sleep 2
-          done
+          echo "Aguardando servidor com protocolo correto..."
+          sleep 5
 
-          # 5. Criar TWA Manifest apontando para o IP de Loopback
+          # 4. Criar TWA Manifest
           cat <<EOF > twa-manifest.json
           {
             "packageId": "com.miranda.roberto.todo.rafael",
@@ -82,7 +75,7 @@ jobs:
           }
           EOF
           
-          # 6. Build Final com flag de automação
+          # 5. Build Final
           bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
         
       - name: Upload do APK
@@ -90,4 +83,3 @@ jobs:
         with:
           name: app-rafael-final
           path: ./**/*.apk
-          if-no-files-found: error
