@@ -9,7 +9,7 @@
   "backgroundColor": "#2E8B57",
   "enableNotifications": false,
   "startUrl": "/",
-  "iconUrl": "ToDO_icone.png",
+  "iconUrl": "https://raw.githubusercontent.com/robertomap/rafael-to-do/main/ToDO_icone.png",
   "splashScreenFadeOutDuration": 300,
   "shortcuts": [],
   "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json"
