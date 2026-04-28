@@ -1,25 +1,23 @@
-name: Build APK Rafael 2026 - Final na Raca
+name: Build APK Rafael 2026 - Downgrade Estratégico
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
-env:
-  # Calar avisos de 2026 e forçar Node 24
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # O PULO DO GATO: Fugir do ubuntu-latest (24.04) que quebrou os caminhos do SDK
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 24
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          # Voltando para a versão 20, que é a nativa do Ubuntu 22.04
+          node-version: '20'
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -30,19 +28,14 @@ jobs:
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Configurar e Compilar
+      - name: Injetar Configuração do SDK
         run: |
-          # 1. Configuração de ambiente (Fim do erro de SDK)
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
-          
-          # 2. Inicialização "Suave"
-          # Tentamos ler o manifesto do Glide apenas para criar as pastas. 
-          # Se der erro de ícone aqui, o '|| true' faz o script continuar.
-          bubblewrap init --manifest https://rafael-to-do.glide.page/manifest.json --yes || true
-          
-          # 3. INJEÇÃO DA FONTE DA VERDADE
-          # Aqui a gente ignora o Glide e escreve o que o Rafael precisa direto no arquivo de build
+
+      - name: Injetar Manifesto
+        # Pulamos o comando 'init' totalmente. Criamos o arquivo e vamos direto pro 'build'.
+        run: |
           cat <<EOF > twa-manifest.json
           {
             "packageId": "com.miranda.roberto.todo.rafael",
@@ -62,11 +55,9 @@ jobs:
           }
           EOF
           
-          echo "Manifesto técnico injetado com sucesso."
-          
-          # 4. Build Final
-          # O '--yes' aceita as licenças e o '--skipSigning' gera o APK para teste imediato
-          bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
+      - name: Build Final
+        # Agora o robô só faz o que importa: ler o arquivo e compilar.
+        run: bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
