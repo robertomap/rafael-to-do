@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Downgrade Estratégico
+name: Build APK Rafael 2026 - Versão de Engenharia
 
 on:
   push:
@@ -7,17 +7,11 @@ on:
 
 jobs:
   build:
-    # O PULO DO GATO: Fugir do ubuntu-latest (24.04) que quebrou os caminhos do SDK
-    runs-on: ubuntu-22.04
+    # Retornamos ao ubuntu-latest mas com configuração explícita de SDK
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          # Voltando para a versão 20, que é a nativa do Ubuntu 22.04
-          node-version: '20'
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -25,16 +19,27 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Android SDK
+        # Esta Action garante que o SDK está pronto e as ferramentas básicas instaladas
+        uses: android-actions/setup-android@v3
+
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Injetar Configuração do SDK
+      - name: Configuração Forçada do Ambiente
+        # Aqui injetamos o config.json usando as variáveis de ambiente que o setup-android configurou
         run: |
           mkdir -p ~/.bubblewrap
-          echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
+          echo "Configuração: JDK em $JAVA_HOME | SDK em $ANDROID_HOME"
 
-      - name: Injetar Manifesto
-        # Pulamos o comando 'init' totalmente. Criamos o arquivo e vamos direto pro 'build'.
+      - name: Gerar Manifesto e Compilar APK
+        # Injetamos o manifesto com o modo standalone para o Rafael e rodamos o build
         run: |
           cat <<EOF > twa-manifest.json
           {
@@ -55,13 +60,12 @@ jobs:
           }
           EOF
           
-      - name: Build Final
-        # Agora o robô só faz o que importa: ler o arquivo e compilar.
-        run: bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
+          # Usamos --yes para automação total e --skipSigning para gerar o debug APK
+          bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
         
-      - name: Upload do APK
+      - name: Upload do APK Final
         uses: actions/upload-artifact@v4
         with:
-          name: app-rafael-final
+          name: app-rafael-debug
           path: ./**/*.apk
           if-no-files-found: error
