@@ -1,0 +1,16 @@
+{
+  "packageId": "com.roberto.estudos.rafael",
+  "host": "seu-app.glideapp.io",
+  "name": "App de Estudos",
+  "launcherName": "Estudos",
+  "display": "standalone",
+  "themeColor": "#FFFFFF",
+  "navigationColor": "#000000",
+  "backgroundColor": "#FFFFFF",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://sua-url-do-icone.png",
+  "splashScreenFadeOutDuration": 300,
+  "shortcuts": [],
+  "webManifestUrl": "https://seu-app.glideapp.io/manifest.json"
+}
