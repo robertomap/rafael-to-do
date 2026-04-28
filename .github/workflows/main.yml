@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Versão de Engenharia
+name: Build APK Rafael 2026 - Reta Final
 
 on:
   push:
@@ -7,7 +7,6 @@ on:
 
 jobs:
   build:
-    # Retornamos ao ubuntu-latest mas com configuração explícita de SDK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -25,21 +24,17 @@ jobs:
           node-version: '20'
 
       - name: Setup Android SDK
-        # Esta Action garante que o SDK está pronto e as ferramentas básicas instaladas
         uses: android-actions/setup-android@v3
 
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Configuração Forçada do Ambiente
-        # Aqui injetamos o config.json usando as variáveis de ambiente que o setup-android configurou
+      - name: Configuração do Ambiente
         run: |
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
-          echo "Configuração: JDK em $JAVA_HOME | SDK em $ANDROID_HOME"
 
       - name: Gerar Manifesto e Compilar APK
-        # Injetamos o manifesto com o modo standalone para o Rafael e rodamos o build
         run: |
           cat <<EOF > twa-manifest.json
           {
@@ -60,8 +55,8 @@ jobs:
           }
           EOF
           
-          # Usamos --yes para automação total e --skipSigning para gerar o debug APK
-          bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
+          # O Pulo do Gato: Passar senhas direto no comando para o robô não perguntar nada
+          bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning --keystorePassword "rafael2026" --keyPassword "rafael2026"
         
       - name: Upload do APK Final
         uses: actions/upload-artifact@v4
