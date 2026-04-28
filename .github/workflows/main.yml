@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - A Elegância Pura
+name: Build APK Rafael 2026 - A Sala Limpa
 
 on:
   push:
@@ -29,47 +29,56 @@ jobs:
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Configurar Ambiente
+      - name: Configurar Ambiente Global
         run: |
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
-      - name: Criar Web Manifest Local (A Isca)
-        # O PULO DO GATO: Colocamos a URL completa no start_url. 
-        # Assim o robô não precisa perguntar qual é o domínio!
+      - name: Preparar Sala Limpa e Gerar Chave
         run: |
-          cat <<EOF > manifest.json
+          # 1. Cria uma pasta 100% vazia e entra nela
+          mkdir app_build
+          cd app_build
+          
+          # 2. Gera a chave de segurança dentro da sala limpa
+          keytool -genkeypair -v -keystore ./android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
+          
+          # 3. Injeta o manifesto dentro da sala limpa
+          cat <<EOF > twa-manifest.json
           {
+            "packageId": "com.miranda.roberto.todo.rafael",
+            "host": "rafael-to-do.glide.page",
             "name": "Rafael To-Do Estudos",
-            "short_name": "Rafael ToDo",
-            "start_url": "https://rafael-to-do.glide.page/",
+            "launcherName": "Rafael ToDo",
             "display": "standalone",
-            "background_color": "#2E8B57",
-            "theme_color": "#2E8B57",
-            "icons": [{
-              "src": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
-              "sizes": "512x512",
-              "type": "image/png"
-            }]
+            "themeColor": "#2E8B57",
+            "navigationColor": "#000000",
+            "backgroundColor": "#2E8B57",
+            "enableNotifications": false,
+            "startUrl": "/",
+            "iconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
+            "splashScreenFadeOutDuration": 300,
+            "shortcuts": [],
+            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json",
+            "signingKey": {
+              "path": "./android.keystore",
+              "alias": "android"
+            }
           }
           EOF
 
-      - name: Inicializar Projeto (Sem Perguntas)
+      - name: Build Final (Sem Prompts)
         run: |
-          export CI=false
-          # O init lê o nosso json acima e monta a estrutura do Android sozinho.
-          # A flag --yes aceita todos os valores padrão (já que demos todas as informações).
-          bubblewrap init --manifest ./manifest.json --yes
-
-      - name: Compilar APK (Build Final)
-        run: |
-          export CI=false
-          # Como o init já preparou o terreno perfeito, o build só empacota.
-          bubblewrap build --yes --skipSigning
+          # 4. Entramos na pasta para compilar
+          cd app_build
+          
+          # O Bubblewrap olha ao redor, vê a pasta vazia e trabalha sem perguntar nada.
+          bubblewrap build --manifest ./twa-manifest.json --yes --keystoreAlias "android" --keystorePassword "rafael2026" --keyPassword "rafael2026"
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
           name: app-rafael-final
-          path: ./**/*.apk
+          # Como tudo foi gerado na pasta nova, o caminho do artefato também muda:
+          path: app_build/**/*.apk
           if-no-files-found: error
