@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026
+name: Build APK Rafael 2026 Final
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 env:
-  # Resolve o alerta de depreciação do Node 20
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
@@ -16,7 +15,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -30,21 +29,15 @@ jobs:
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Configurar Bubblewrap de forma Silenciosa
-        # Usamos as variáveis nativas do Runner do GitHub para não errar o caminho
+      - name: Configurar e Gerar APK
+        # Usamos o ANDROID_HOME oficial do GitHub e o build com --yes
         run: |
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
-          echo "Configuração apontando para: ${ANDROID_HOME}"
-
-      - name: Gerar APK
-        # Respondemos 'y' apenas uma vez para a licença, evitando o loop infinito
-        run: |
-          echo "y" | bubblewrap build --manifest ./twa-manifest.json --skipSigning
+          bubblewrap build --manifest ./twa-manifest.json --skipSigning --yes
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-rafael-2026
+          name: app-rafael-final
           path: ./**/*.apk
-          if-no-files-found: error
