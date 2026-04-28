@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Protocolo Final
+name: Build APK Rafael 2026 - Estratégia de Arquivo Local
 
 on:
   push:
@@ -31,11 +31,11 @@ jobs:
 
       - name: Configurar e Gerar APK
         run: |
-          # 1. Configurar caminhos
+          # 1. Configurar caminhos do SDK
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
           
-          # 2. Criar Manifesto Web
+          # 2. Criar o Web Manifest LOCAL (A fonte da verdade)
           cat <<EOF > manifest.json
           {
             "name": "Rafael To-Do Estudos",
@@ -44,42 +44,25 @@ jobs:
             "display": "standalone",
             "background_color": "#2E8B57",
             "theme_color": "#2E8B57",
-            "icons": [{ "src": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png", "sizes": "512x512", "type": "image/png" }]
+            "icons": [{ 
+              "src": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png", 
+              "sizes": "512x512", 
+              "type": "image/png",
+              "purpose": "any maskable"
+            }]
           }
           EOF
 
-          # 3. SUBIR SERVIDOR COM MIME-TYPE CORRETO (Crucial)
-          # Este comando força o Python a reconhecer o .json como o formato que o Bubblewrap exige
-          python3 -c "import http.server; http.server.SimpleHTTPRequestHandler.extensions_map['.json'] = 'application/manifest+json'; http.server.test(HandlerClass=http.server.SimpleHTTPRequestHandler, port=8080)" &
+          # 3. INICIALIZAR O PROJETO A PARTIR DO ARQUIVO (Ignora a rede/URL)
+          # O comando 'init' gera o twa-manifest.json automaticamente com base no arquivo local
+          bubblewrap init --manifest ./manifest.json --host rafael-to-do.glide.page --metaData.appVersionName "1.0.0" --yes
           
-          echo "Aguardando servidor com protocolo correto..."
-          sleep 5
-
-          # 4. Criar TWA Manifest
-          cat <<EOF > twa-manifest.json
-          {
-            "packageId": "com.miranda.roberto.todo.rafael",
-            "host": "rafael-to-do.glide.page",
-            "name": "Rafael To-Do Estudos",
-            "launcherName": "Rafael ToDo",
-            "display": "standalone",
-            "themeColor": "#2E8B57",
-            "navigationColor": "#000000",
-            "backgroundColor": "#2E8B57",
-            "enableNotifications": false,
-            "startUrl": "/",
-            "iconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
-            "splashScreenFadeOutDuration": 300,
-            "shortcuts": [],
-            "webManifestUrl": "http://127.0.0.1:8080/manifest.json"
-          }
-          EOF
-          
-          # 5. Build Final
-          bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
+          # 4. BUILD FINAL
+          bubblewrap build --yes --skipSigning
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
           name: app-rafael-final
           path: ./**/*.apk
+          if-no-files-found: error
