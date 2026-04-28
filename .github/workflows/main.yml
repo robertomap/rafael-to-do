@@ -1,0 +1,26 @@
+name: Gerar APK Estudos Rafael
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Permite rodar manualmente se precisar
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Compilar TWA APK (Bubblewrap)
+        uses: omar-dulaimi/android-twa-action@v1.4.0
+        id: build
+        with:
+          # Caminho para o arquivo que configuramos
+          twa-manifest: ./twa-manifest.json
+          
+      - name: Upload do APK Gerado
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-estudos-rafael
+          path: ${{ steps.build.outputs.apk-path }}
