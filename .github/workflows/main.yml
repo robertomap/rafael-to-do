@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Final Fix
+name: Build APK Rafael 2026 - Final Stable
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  # Resolve o alerta de depreciação do Node 20 para 2026
+  # Calar avisos de depreciação e forçar o motor de 2026
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
@@ -30,25 +30,22 @@ jobs:
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Aceitar Licenças do Android
-        # Este passo é o "segredo". Ele aceita as licenças no local correto do Runner.
-        run: |
-          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || echo "y" | $ANDROID_HOME/tools/bin/sdkmanager --licenses
-
-      - name: Configurar Caminhos Silenciosamente
-        # Injetamos o config.json usando as variáveis oficiais do GitHub
+      - name: Injetar Configuração do Ambiente
+        # Aqui eliminamos o erro de "SDK incorrect" injetando os caminhos oficiais
         run: |
           mkdir -p ~/.bubblewrap
-          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
+          echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
+          echo "Bubblewrap configurado para usar SDK em: ${ANDROID_HOME}"
 
       - name: Gerar APK
-        # O segredo aqui é a flag --yes (que substitui o comando 'yes |')
+        # O segredo: --yes aceita licenças e --skipSigning evita a necessidade de chaves agora
         run: |
-          bubblewrap build --manifest ./twa-manifest.json --skipSigning --yes
+          bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
           name: app-rafael-final
+          # O asterisco duplo garante que ele encontre o arquivo não importa onde o Gradle o coloque
           path: ./**/*.apk
           if-no-files-found: error
