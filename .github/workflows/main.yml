@@ -1,4 +1,4 @@
-name: Gerar APK Oficial PWABuilder
+name: Gerar APK com Override de Manifesto
 
 on:
   push:
@@ -15,14 +15,16 @@ jobs:
       - name: Gerar Android APK
         uses: pwa-builder/pwa-action@v1
         with:
+          # Mantemos a URL para validação de segurança
           url: https://rafael-to-do.glide.page
           platform: android
+          # AQUI ESTÁ A MÁGICA: apontamos para o seu arquivo local
+          # (Verifique se o nome do arquivo no repo é exatamente este)
+          manifestFile: ./twa-manifest.json
           
       - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
           name: app-rafael-final
-          # Busca em qualquer subpasta por arquivos .apk
           path: ./**/*.apk
-          # Interrompe com erro se o arquivo não for gerado
           if-no-files-found: error
