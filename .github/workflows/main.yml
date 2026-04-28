@@ -15,7 +15,6 @@ jobs:
       - name: Gerar Android APK
         uses: pwa-builder/pwa-action@v1
         with:
-          # A URL do seu app (ela deve estar pública conforme sua imagem)
           url: https://rafael-to-do.glide.page
           platform: android
           
