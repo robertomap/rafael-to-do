@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Bypass Total
+name: Build APK Rafael 2026 - Final Fix
 
 on:
   push:
@@ -31,11 +31,11 @@ jobs:
 
       - name: Configurar e Gerar APK
         run: |
-          # 1. Configuração do ambiente
+          # 1. Configurar caminhos do SDK
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
           
-          # 2. Criar o Web Manifest local (A fonte da verdade)
+          # 2. Criar Manifesto Web local (Fonte da Verdade)
           cat <<EOF > manifest.json
           {
             "name": "Rafael To-Do Estudos",
@@ -44,22 +44,25 @@ jobs:
             "display": "standalone",
             "background_color": "#2E8B57",
             "theme_color": "#2E8B57",
-            "icons": [
-              {
-                "src": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
-                "sizes": "512x512",
-                "type": "image/png"
-              }
-            ]
+            "icons": [{ "src": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png", "sizes": "512x512", "type": "image/png" }]
           }
           EOF
 
-          # 3. SUBIR SERVIDOR LOCAL (O Pulo do Gato)
-          # Isso cria um servidor temporário na porta 8080 para servir o manifest.json
-          python3 -m http.server 8080 &
-          sleep 3
+          # 3. Subir servidor Python (Bind 0.0.0.0 para garantir visibilidade)
+          python3 -m http.server 8080 --bind 0.0.0.0 &
+          
+          # 4. HEALTH CHECK: Aguarda até que o arquivo esteja disponível (máx 20s)
+          echo "Aguardando servidor local responder..."
+          for i in {1..10}; do
+            if curl -s http://127.0.0.1:8080/manifest.json > /dev/null; then
+              echo "Servidor Online!"
+              break
+            fi
+            echo "Tentativa $i: Servidor ainda não disponível..."
+            sleep 2
+          done
 
-          # 4. Criar o TWA Manifest apontando para o servidor que acabamos de subir
+          # 5. Criar TWA Manifest apontando para o IP de Loopback
           cat <<EOF > twa-manifest.json
           {
             "packageId": "com.miranda.roberto.todo.rafael",
@@ -75,13 +78,11 @@ jobs:
             "iconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
             "splashScreenFadeOutDuration": 300,
             "shortcuts": [],
-            "webManifestUrl": "http://localhost:8080/manifest.json"
+            "webManifestUrl": "http://127.0.0.1:8080/manifest.json"
           }
           EOF
           
-          echo "--- Servidor Local Ativo e Manifesto Preparado ---"
-          
-          # 5. Build Final
+          # 6. Build Final com flag de automação
           bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
         
       - name: Upload do APK
@@ -89,3 +90,4 @@ jobs:
         with:
           name: app-rafael-final
           path: ./**/*.apk
+          if-no-files-found: error
