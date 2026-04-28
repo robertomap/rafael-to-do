@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Versão Definitiva
+name: Build APK Rafael 2026 - Redundância Máxima
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 env:
+  # Calar avisos de 2026 e forçar Node 24
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
@@ -29,24 +30,36 @@ jobs:
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Injetar Configuração
+      - name: Configurar e Gerar APK
         run: |
+          # 1. Configuração do ambiente
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
-
-      - name: Gerar APK
-        run: |
-          # Garante que o caminho do manifesto seja absoluto
-          MANIFEST_PATH="${{ github.workspace }}/twa-manifest.json"
           
-          echo "Verificando arquivo em: $MANIFEST_PATH"
-          if [ -f "$MANIFEST_PATH" ]; then
-            # 'init' cria o projeto e 'build' gera o APK
-            bubblewrap build --manifest "$MANIFEST_PATH" --yes --skipSigning
-          else
-            echo "ERRO: Arquivo twa-manifest.json não encontrado na raiz!"
-            exit 1
-          fi
+          # 2. INJEÇÃO DO MANIFESTO (Solução Nuclear para evitar erro de arquivo)
+          cat <<EOF > twa-manifest.json
+          {
+            "packageId": "com.miranda.roberto.todo.rafael",
+            "host": "rafael-to-do.glide.page",
+            "name": "Rafael To-Do Estudos",
+            "launcherName": "Rafael ToDo",
+            "display": "standalone",
+            "themeColor": "#2E8B57",
+            "navigationColor": "#000000",
+            "backgroundColor": "#2E8B57",
+            "enableNotifications": false,
+            "startUrl": "/",
+            "iconUrl": "https://raw.githubusercontent.com/robertomap/rafael-to-do/main/ToDO_icone.png",
+            "splashScreenFadeOutDuration": 300,
+            "shortcuts": [],
+            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json"
+          }
+          EOF
+          
+          echo "--- Manifesto injetado com sucesso ---"
+          
+          # 3. Build com flag de automação
+          bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
