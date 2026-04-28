@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - Bypass de CDN
+name: Build APK Rafael 2026 - Bypass Total
 
 on:
   push:
@@ -35,7 +35,7 @@ jobs:
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
           
-          # 2. Criar o Web Manifest local (para o Bubblewrap não ter que baixar do Glide)
+          # 2. Criar o Web Manifest local (A fonte da verdade)
           cat <<EOF > manifest.json
           {
             "name": "Rafael To-Do Estudos",
@@ -46,7 +46,7 @@ jobs:
             "theme_color": "#2E8B57",
             "icons": [
               {
-                "src": "https://raw.githubusercontent.com/robertomap/rafael-to-do/main/ToDO_icone.png",
+                "src": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
                 "sizes": "512x512",
                 "type": "image/png"
               }
@@ -54,7 +54,12 @@ jobs:
           }
           EOF
 
-          # 3. Criar o TWA Manifest apontando para o arquivo que acabamos de criar acima
+          # 3. SUBIR SERVIDOR LOCAL (O Pulo do Gato)
+          # Isso cria um servidor temporário na porta 8080 para servir o manifest.json
+          python3 -m http.server 8080 &
+          sleep 3
+
+          # 4. Criar o TWA Manifest apontando para o servidor que acabamos de subir
           cat <<EOF > twa-manifest.json
           {
             "packageId": "com.miranda.roberto.todo.rafael",
@@ -67,16 +72,16 @@ jobs:
             "backgroundColor": "#2E8B57",
             "enableNotifications": false,
             "startUrl": "/",
-            "iconUrl": "https://raw.githubusercontent.com/robertomap/rafael-to-do/main/ToDO_icone.png",
+            "iconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
             "splashScreenFadeOutDuration": 300,
             "shortcuts": [],
-            "webManifestUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/manifest.json"
+            "webManifestUrl": "http://localhost:8080/manifest.json"
           }
           EOF
           
-          echo "--- Ambiente Local Preparado ---"
+          echo "--- Servidor Local Ativo e Manifesto Preparado ---"
           
-          # 4. Build Final
+          # 5. Build Final
           bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
         
       - name: Upload do APK
