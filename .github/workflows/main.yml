@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - O Gambito da Rainha
+name: Build APK Rafael 2026 - Degrau Controlado
 
 on:
   push:
@@ -13,7 +13,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java 17
-        # Mantemos o Java para a nossa ferramenta de gerar a chave funcionar
         uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -24,20 +23,16 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Setup Android SDK (A Ferramenta Estável)
+        uses: android-actions/setup-android@v3
+
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Deixar o Bubblewrap instalar o próprio SDK
+      - name: Configurar Ambiente
         run: |
-          export CI=false
-          set +o pipefail
-          # Aqui a gente manda "y" infinitamente SÓ para o diagnóstico. 
-          # Ele vai baixar o Android SDK exato que ele precisa e não vai dar loop de senha.
-          yes "y" | bubblewrap doctor
-
-      - name: Gerar Chave de Segurança (Keystore)
-        run: |
-          keytool -genkeypair -v -keystore ./android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
+          mkdir -p ~/.bubblewrap
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
       - name: Injetar Manifesto
         run: |
@@ -56,23 +51,18 @@ jobs:
             "iconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
             "splashScreenFadeOutDuration": 300,
             "shortcuts": [],
-            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json",
-            "signingKey": {
-              "path": "./android.keystore",
-              "alias": "android"
-            }
+            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json"
           }
           EOF
           
-      - name: Build Final (Limpo e Seguro)
-        # Injetamos as senhas na variável de ambiente do Linux
-        env:
-          BUBBLEWRAP_KEYSTORE_PASSWORD: rafael2026
-          BUBBLEWRAP_KEY_PASSWORD: rafael2026
+      - name: Build Final (A Mágica dos 10 Enters)
         run: |
-          # Rodamos o build de forma limpa. O SDK já está lá, e as senhas estão na memória. Zero Prompts!
+          # 1. Desliga o modo "robô" para ele aceitar respostas
           export CI=false
-          bubblewrap build --manifest ./twa-manifest.json --yes --skipSigning
+          
+          # 2. O PULO DO GATO: Imprime exatamente 10 'Enters' (\n) e passa para o Bubblewrap.
+          # Isso responde as perguntas de senha com "vazio" e o --skipSigning faz o resto.
+          printf '\n\n\n\n\n\n\n\n\n\n' | bubblewrap build --manifest ./twa-manifest.json --skipSigning
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
