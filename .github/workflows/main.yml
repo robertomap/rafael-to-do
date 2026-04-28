@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 env:
-  # Força o uso do Node 24 para evitar os avisos de depreciação de 2026
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
@@ -22,7 +21,6 @@ jobs:
           node-version: '24'
 
       - name: Setup Java 17
-        # Instalamos o Java antes para o Bubblewrap não precisar baixar
         uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -31,15 +29,21 @@ jobs:
       - name: Instalar Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Gerar APK (Modo Não-Interativo)
-        # O comando 'yes' responde "y" para todas as perguntas do terminal
+      - name: Pré-configurar Bubblewrap (Silencioso)
+        # Aqui criamos o arquivo de configuração para o robô não perguntar nada
         run: |
-          yes | bubblewrap build --manifest ./twa-manifest.json --skipSigning
+          mkdir -p ~/.bubblewrap
+          echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
+          echo "Configuração do Bubblewrap criada com sucesso."
+
+      - name: Gerar APK
+        # Agora o build deve rodar sem interrupções
+        run: |
+          bubblewrap build --manifest ./twa-manifest.json --skipSigning
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
           name: app-rafael-debug
-          # Busca recursiva para garantir que encontre o APK gerado
           path: ./**/*.apk
           if-no-files-found: error
