@@ -1,4 +1,4 @@
-name: Build APK Rafael - Debug e Build
+name: Build APK Rafael 2026 - Versão Definitiva
 
 on:
   push:
@@ -34,14 +34,19 @@ jobs:
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"${JAVA_HOME}\",\"androidSdkPath\":\"${ANDROID_HOME}\"}" > ~/.bubblewrap/config.json
 
-      - name: Verificar Arquivos e Gerar APK
+      - name: Gerar APK
         run: |
-          echo "--- Listando arquivos no diretório atual ---"
-          ls -R
-          echo "--- Iniciando o Build ---"
-          # Usamos o find para garantir que o Bubblewrap localize o arquivo exato
-          MANIFEST_PATH=$(find . -name "twa-manifest.json" | head -n 1)
-          bubblewrap build --manifest "$MANIFEST_PATH" --yes --skipSigning
+          # Garante que o caminho do manifesto seja absoluto
+          MANIFEST_PATH="${{ github.workspace }}/twa-manifest.json"
+          
+          echo "Verificando arquivo em: $MANIFEST_PATH"
+          if [ -f "$MANIFEST_PATH" ]; then
+            # 'init' cria o projeto e 'build' gera o APK
+            bubblewrap build --manifest "$MANIFEST_PATH" --yes --skipSigning
+          else
+            echo "ERRO: Arquivo twa-manifest.json não encontrado na raiz!"
+            exit 1
+          fi
         
       - name: Upload do APK
         uses: actions/upload-artifact@v4
