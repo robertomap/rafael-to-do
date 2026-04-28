@@ -1,4 +1,4 @@
-name: Gerar APK com Override de Manifesto
+name: Build Manual com Bubblewrap CLI
 
 on:
   push:
@@ -12,19 +12,21 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Gerar Android APK
-        uses: pwa-builder/pwa-action@v1
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          # Mantemos a URL para validação de segurança
-          url: https://rafael-to-do.glide.page
-          platform: android
-          # AQUI ESTÁ A MÁGICA: apontamos para o seu arquivo local
-          # (Verifique se o nome do arquivo no repo é exatamente este)
-          manifestFile: ./twa-manifest.json
-          
+          node-version: '20'
+
+      - name: Instalar Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Gerar APK
+        # O comando 'build' usa o seu arquivo twa-manifest.json local
+        run: |
+          bubblewrap build --manifest ./twa-manifest.json --skipSigning
+        
       - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-rafael-final
-          path: ./**/*.apk
-          if-no-files-found: error
+          name: app-rafael-debug
+          path: ./*.apk
