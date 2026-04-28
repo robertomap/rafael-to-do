@@ -1,4 +1,4 @@
-name: Build APK Final Rafael
+name: Build APK Manual 2026
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 env:
-  # Garante compatibilidade com o runner do GitHub em 2026
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
@@ -16,18 +15,36 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Gerar Android APK
-        uses: pwa-builder/pwa-action@v1
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          url: https://rafael-to-do.glide.page
-          platform: android
-          # Forçamos o uso do seu manifesto local para garantir o Standalone
-          manifestFile: ./twa-manifest.json
-          
+          node-version: '24'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Instalar Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Configurar Caminhos do Android (O Pulo do Gato)
+        # Forçamos o Bubblewrap a aceitar os caminhos padrão do Runner do GitHub
+        run: |
+          mkdir -p ~/.bubblewrap
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"/usr/local/lib/android/sdk\"}" > ~/.bubblewrap/config.json
+          # Aceitar licenças do Android SDK silenciosamente
+          yes | sdkmanager --licenses || true
+
+      - name: Gerar APK
+        # O comando 'build' agora encontrará o config.json e não fará perguntas
+        run: |
+          bubblewrap build --manifest ./twa-manifest.json --skipSigning
+        
       - name: Upload do APK
         uses: actions/upload-artifact@v4
         with:
           name: app-rafael-final
-          # O "pulo do gato": busca qualquer arquivo .apk em qualquer pasta
-          path: "**/*.apk"
+          path: ./**/*.apk
           if-no-files-found: error
