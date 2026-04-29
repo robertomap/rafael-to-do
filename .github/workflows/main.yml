@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - The Perfect Manifest
+name: Build APK Rafael 2026 - The Black Box
 
 on:
   push:
@@ -33,15 +33,15 @@ jobs:
 
       - name: Configure Bubblewrap
         run: |
-          npx @bubblewrap/cli updateConfig --jdkPath "${JAVA_HOME}" --androidSdkPath "${ANDROID_HOME}"
+          bubblewrap updateConfig --jdkPath "${JAVA_HOME}" --androidSdkPath "${ANDROID_HOME}"
 
-      - name: The Perfect Manifest (Zero Blanks)
+      - name: The Black Box Assembly Line (Manifest + Build)
         run: |
           rm -rf build_rafael
           mkdir build_rafael
           cd build_rafael
           
-          # By providing EVERY parameter, Bubblewrap has nothing to ask!
+          echo ">>> 1. Writing the Perfect Manifest..."
           cat <<EOF > twa-manifest.json
           {
             "packageId": "com.miranda.roberto.todo.rafael",
@@ -49,50 +49,42 @@ jobs:
             "name": "Rafael To-Do",
             "launcherName": "Rafael ToDo",
             "display": "standalone",
-            "orientation": "any",
             "themeColor": "#2E8B57",
             "navigationColor": "#000000",
             "backgroundColor": "#2E8B57",
-            "splashScreenColor": "#2E8B57",
             "startUrl": "/",
             "iconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
             "maskableIconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
             "splashScreenFadeOutDuration": 300,
             "fallbackUrl": "https://rafael-to-do.glide.page/",
             "enableNotifications": false,
-            "appVersion": "1.0.0",
-            "appVersionCode": 1,
-            "features": {
-              "playBilling": {
-                "enabled": false
-              }
-            },
-            "alphaDependencies": {
-              "enabled": false
-            }
+            "features": { "playBilling": { "enabled": false } },
+            "alphaDependencies": { "enabled": false }
           }
           EOF
-
-      - name: Raw Build
-        run: |
-          cd build_rafael
-          export CI=true 
-          yes | sdkmanager --licenses || true
           
-          # Since the manifest is complete, we skip init and go straight to build.
-          npx @bubblewrap/cli build --skipSigning
+          echo ">>> 2. Quality Control (Checking if file exists):"
+          ls -la
+          
+          echo ">>> 3. Generating Android Scaffolding..."
+          export CI=true
+          bubblewrap generate --manifest ./twa-manifest.json
+          
+          echo ">>> 4. Building the Raw APK..."
+          bubblewrap build --skipSigning
 
       - name: Manual Signing (Industrial Standard)
         run: |
           cd build_rafael
           
+          echo ">>> Generating Keystore..."
           keytool -genkeypair -v -storetype JKS -keystore ./rafael.jks -alias rafael_alias -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
           
           APK_IN=$(find . -name "*.apk" | head -n 1)
-          echo "Raw APK found: $APK_IN"
+          echo ">>> Raw APK found: $APK_IN"
           
+          echo ">>> Aligning and Signing..."
           ${ANDROID_HOME}/build-tools/34.0.0/zipalign -v -p 4 "$APK_IN" app-rafael-aligned.apk
-          
           ${ANDROID_HOME}/build-tools/34.0.0/apksigner sign --ks ./rafael.jks --ks-key-alias rafael_alias --ks-pass pass:rafael2026 --key-pass pass:rafael2026 --out app-rafael-final.apk app-rafael-aligned.apk
 
       - name: Upload Final APK
