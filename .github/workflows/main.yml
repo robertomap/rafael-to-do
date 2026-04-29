@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - The Black Box
+name: Build APK Rafael 2026 - The Black Box (Patched)
 
 on:
   push:
@@ -57,6 +57,7 @@ jobs:
             "maskableIconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
             "splashScreenFadeOutDuration": 300,
             "fallbackUrl": "https://rafael-to-do.glide.page/",
+            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json",
             "enableNotifications": false,
             "features": { "playBilling": { "enabled": false } },
             "alphaDependencies": { "enabled": false }
@@ -78,18 +79,4 @@ jobs:
           cd build_rafael
           
           echo ">>> Generating Keystore..."
-          keytool -genkeypair -v -storetype JKS -keystore ./rafael.jks -alias rafael_alias -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
-          
-          APK_IN=$(find . -name "*.apk" | head -n 1)
-          echo ">>> Raw APK found: $APK_IN"
-          
-          echo ">>> Aligning and Signing..."
-          ${ANDROID_HOME}/build-tools/34.0.0/zipalign -v -p 4 "$APK_IN" app-rafael-aligned.apk
-          ${ANDROID_HOME}/build-tools/34.0.0/apksigner sign --ks ./rafael.jks --ks-key-alias rafael_alias --ks-pass pass:rafael2026 --key-pass pass:rafael2026 --out app-rafael-final.apk app-rafael-aligned.apk
-
-      - name: Upload Final APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-rafael-final
-          path: build_rafael/app-rafael-final.apk
-          if-no-files-found: error
+          keytool -genkeypair -v -storetype JKS -keystore ./rafael.jks -alias rafael_
