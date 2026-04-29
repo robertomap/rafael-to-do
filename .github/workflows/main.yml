@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - The PLC Robot (Expect)
+name: Build APK Rafael 2026 - The PATH Fix
 
 on:
   push:
@@ -31,9 +31,9 @@ jobs:
       - name: Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Configure Bubblewrap
+      - name: Configure Bubblewrap (Using npx)
         run: |
-          bubblewrap updateConfig --jdkPath "${JAVA_HOME}" --androidSdkPath "${ANDROID_HOME}"
+          npx @bubblewrap/cli updateConfig --jdkPath "${JAVA_HOME}" --androidSdkPath "${ANDROID_HOME}"
 
       - name: Install 'Expect' (Our Terminal Robot)
         run: sudo apt-get install -y expect
@@ -47,11 +47,10 @@ jobs:
           yes | sdkmanager --licenses || true
           export CI=false
           
-          # We write a script for 'expect' to run.
-          # It watches for anything resembling a prompt (regex \?.*) and gently presses Enter (\r).
+          # The robot now uses 'npx' to guarantee it finds the executable!
           cat << 'EOF' > automate.exp
           set timeout -1
-          spawn bubblewrap init --manifest="https://rafael-to-do.glide.page/manifest.json"
+          spawn npx @bubblewrap/cli init --manifest="https://rafael-to-do.glide.page/manifest.json"
           expect {
               -re "\\?.*" {
                   send "\r"
@@ -64,11 +63,11 @@ jobs:
           # Start the robot!
           expect automate.exp
 
-      - name: Raw Build
+      - name: Raw Build (Using npx)
         run: |
           cd build_rafael
           export CI=false
-          bubblewrap build --skipSigning
+          npx @bubblewrap/cli build --skipSigning
 
       - name: Manual Signing (Industrial Standard)
         run: |
