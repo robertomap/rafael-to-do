@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - The Black Box (Patched)
+name: Build APK Rafael 2026 - The Perfect PLC
 
 on:
   push:
@@ -35,48 +35,56 @@ jobs:
         run: |
           bubblewrap updateConfig --jdkPath "${JAVA_HOME}" --androidSdkPath "${ANDROID_HOME}"
 
-      - name: The Black Box Assembly Line (Manifest + Build)
+      - name: Install 'Expect' (The PLC Robot)
+        run: sudo apt-get install -y expect
+
+      - name: The Assembly Line
         run: |
           rm -rf build_rafael
           mkdir build_rafael
           cd build_rafael
           
-          echo ">>> 1. Writing the Perfect Manifest..."
-          cat <<EOF > twa-manifest.json
-          {
-            "packageId": "com.miranda.roberto.todo.rafael",
-            "host": "rafael-to-do.glide.page",
-            "name": "Rafael To-Do",
-            "launcherName": "Rafael ToDo",
-            "display": "standalone",
-            "themeColor": "#2E8B57",
-            "navigationColor": "#000000",
-            "backgroundColor": "#2E8B57",
-            "startUrl": "/",
-            "iconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
-            "maskableIconUrl": "https://raw.githubusercontent.com/${{ github.repository }}/main/ToDO_icone.png",
-            "splashScreenFadeOutDuration": 300,
-            "fallbackUrl": "https://rafael-to-do.glide.page/",
-            "webManifestUrl": "https://rafael-to-do.glide.page/manifest.json",
-            "enableNotifications": false,
-            "features": { "playBilling": { "enabled": false } },
-            "alphaDependencies": { "enabled": false }
+          export CI=false
+          yes | sdkmanager --licenses || true
+          
+          echo ">>> 1. Creating the Keystore Manually..."
+          # We use the default Bubblewrap names (android.keystore and android alias)
+          keytool -genkeypair -v -storetype JKS -keystore ./android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 -storepass rafael2026 -keypass rafael2026 -dname "CN=Rafael, OU=Estudos, O=Miranda, L=Belo Horizonte, S=MG, C=BR"
+          
+          echo ">>> 2. Programming the PLC (State Machine)..."
+          # This is the magic block!
+          cat << 'EOF' > automate.exp
+          set timeout -1
+          spawn bash -c "bubblewrap init --manifest='https://rafael-to-do.glide.page/manifest.json'"
+          expect {
+              -nocase -re "password" {
+                  send "rafael2026\r"
+                  exp_continue
+              }
+              -re "\\?" {
+                  send "\r"
+                  exp_continue
+              }
+              eof
           }
           EOF
           
-          echo ">>> 2. Quality Control (Checking if file exists):"
-          ls -la
+          echo ">>> 3. Running the PLC to Generate Scaffolding..."
+          expect automate.exp
           
-          echo ">>> 3. Generating Android Scaffolding..."
-          export CI=true
-          bubblewrap generate --manifest ./twa-manifest.json
-          
-          echo ">>> 4. Building the Raw APK..."
+          echo ">>> 4. Compiling the Raw APK..."
           bubblewrap build --skipSigning
-
-      - name: Manual Signing (Industrial Standard)
-        run: |
-          cd build_rafael
           
-          echo ">>> Generating Keystore..."
-          keytool -genkeypair -v -storetype JKS -keystore ./rafael.jks -alias rafael_
+          echo ">>> 5. Aligning and Signing (Industrial Standard)..."
+          APK_IN=$(find . -name "*.apk" | head -n 1)
+          echo "Raw APK found: $APK_IN"
+          
+          ${ANDROID_HOME}/build-tools/34.0.0/zipalign -v -p 4 "$APK_IN" app-rafael-aligned.apk
+          ${ANDROID_HOME}/build-tools/34.0.0/apksigner sign --ks ./android.keystore --ks-key-alias android --ks-pass pass:rafael2026 --key-pass pass:rafael2026 --out app-rafael-final.apk app-rafael-aligned.apk
+
+      - name: Upload Final APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-rafael-final
+          path: build_rafael/app-rafael-final.apk
+          if-no-files-found: error
