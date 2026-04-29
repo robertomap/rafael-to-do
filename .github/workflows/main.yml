@@ -1,4 +1,4 @@
-name: Build APK Rafael 2026 - The PATH Fix
+name: Build APK Rafael 2026 - The Sensor Fix
 
 on:
   push:
@@ -31,26 +31,26 @@ jobs:
       - name: Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Configure Bubblewrap (Using npx)
+      - name: Configure Bubblewrap
         run: |
-          npx @bubblewrap/cli updateConfig --jdkPath "${JAVA_HOME}" --androidSdkPath "${ANDROID_HOME}"
+          bubblewrap updateConfig --jdkPath "${JAVA_HOME}" --androidSdkPath "${ANDROID_HOME}"
 
       - name: Install 'Expect' (Our Terminal Robot)
         run: sudo apt-get install -y expect
 
-      - name: Closed-Loop Init (Answering Prompts Smartly)
+      - name: Closed-Loop Init (The Clean Spawn)
         run: |
           rm -rf build_rafael
           mkdir build_rafael
           cd build_rafael
           
           yes | sdkmanager --licenses || true
-          export CI=false
           
-          # The robot now uses 'npx' to guarantee it finds the executable!
+          # We spawn bash so the robot has full access to the system paths without npx noise.
+          # It will silently watch for "?" and press Enter.
           cat << 'EOF' > automate.exp
           set timeout -1
-          spawn npx @bubblewrap/cli init --manifest="https://rafael-to-do.glide.page/manifest.json"
+          spawn bash -c "bubblewrap init --manifest='https://rafael-to-do.glide.page/manifest.json'"
           expect {
               -re "\\?.*" {
                   send "\r"
@@ -60,14 +60,13 @@ jobs:
           }
           EOF
           
-          # Start the robot!
           expect automate.exp
 
-      - name: Raw Build (Using npx)
+      - name: Raw Build
         run: |
           cd build_rafael
           export CI=false
-          npx @bubblewrap/cli build --skipSigning
+          bubblewrap build --skipSigning
 
       - name: Manual Signing (Industrial Standard)
         run: |
